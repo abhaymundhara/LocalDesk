@@ -154,6 +154,10 @@ All tools follow `snake_case` naming convention (`verb_noun` pattern):
 - Works with any JavaScript-rendered page
 
 ### Task Management
+
+![photo_2026-01-19_00-55-13](https://github.com/user-attachments/assets/5d7c2122-9023-4e8a-be0d-e63b666cea7b)
+
+
 | Tool | Description |
 |------|-------------|
 | `manage_todos` | Create/update task plans with visual progress tracking |
