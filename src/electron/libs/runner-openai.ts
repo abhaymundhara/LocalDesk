@@ -145,12 +145,15 @@ export async function runClaude(options: RunnerOptions): Promise<RunnerHandle> {
         return response;
       };
 
-      // Initialize OpenAI client with custom fetch
+      // Initialize OpenAI client with custom fetch and timeout
+      const REQUEST_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes for long operations
       const client = new OpenAI({
         apiKey: guiSettings.apiKey || 'dummy-key',
         baseURL: baseURL,
         dangerouslyAllowBrowser: false,
-        fetch: customFetch as any
+        fetch: customFetch as any,
+        timeout: REQUEST_TIMEOUT_MS,
+        maxRetries: 2
       });
 
       // Initialize tool executor with API settings for web tools
@@ -848,8 +851,12 @@ DO NOT call the same tool again with similar arguments.`
       // Extract detailed error message from API response
       let errorMessage = String(error);
       
+      // Check for timeout errors
+      if (error.name === 'TimeoutError' || error.message?.includes('timeout') || error.code === 'ETIMEDOUT') {
+        errorMessage = '⏱️ Request timed out. The server took too long to respond. Try again or use a faster model.';
+      }
       // Check if we captured the error body via custom fetch
-      if (lastErrorBody) {
+      else if (lastErrorBody) {
         try {
           const errorBody = JSON.parse(lastErrorBody);
           if (errorBody.detail) {
