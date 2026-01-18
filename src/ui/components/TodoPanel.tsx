@@ -2,7 +2,7 @@
  * TodoPanel - Displays agent's task plan with progress bar (collapsible)
  */
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { TodoItem, TodoStatus } from "../types";
 
 interface TodoPanelProps {
@@ -17,7 +17,8 @@ const statusConfig: Record<TodoStatus, { emoji: string }> = {
 };
 
 export function TodoPanel({ todos }: TodoPanelProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
   
   if (!todos || todos.length === 0) return null;
 
@@ -27,16 +28,17 @@ export function TodoPanel({ todos }: TodoPanelProps) {
   const inProgress = todos.find(t => t.status === 'in_progress');
 
   return (
-    <div className="bg-white border border-ink-200 rounded-lg shadow-sm">
-      {/* Header with progress - clickable to collapse */}
-      <div 
-        className="flex items-center justify-between p-3 cursor-pointer select-none hover:bg-ink-50 rounded-t-lg transition-colors"
-        onClick={() => setIsCollapsed(!isCollapsed)}
+    <div className="bg-white border border-ink-200 rounded-lg shadow-sm overflow-hidden">
+      {/* Header - clickable to expand/collapse */}
+      <button 
+        type="button"
+        className="w-full flex items-center justify-between p-3 cursor-pointer select-none hover:bg-ink-50 transition-colors text-left"
+        onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2">
           <span 
-            className="text-xs text-ink-400 transition-transform duration-200"
-            style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+            className="text-xs text-ink-400 transition-transform duration-200 inline-block"
+            style={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
           >
             ▼
           </span>
@@ -46,7 +48,7 @@ export function TodoPanel({ todos }: TodoPanelProps) {
           </span>
         </div>
         <span className="text-xs font-mono text-ink-500">{percent}%</span>
-      </div>
+      </button>
 
       {/* Progress bar - always visible */}
       <div className="h-1.5 bg-ink-100 mx-3 mb-2 rounded-full overflow-hidden">
@@ -56,28 +58,37 @@ export function TodoPanel({ todos }: TodoPanelProps) {
         />
       </div>
 
-      {/* Collapsible content */}
-      {!isCollapsed && (
+      {/* Expandable content */}
+      <div 
+        className="transition-all duration-200 ease-out"
+        style={{ 
+          maxHeight: isExpanded ? '400px' : '0px',
+          opacity: isExpanded ? 1 : 0,
+          overflow: 'hidden'
+        }}
+      >
         <div className="px-3 pb-3">
           {/* Current task highlight */}
           {inProgress && (
             <div className="bg-blue-50 border border-blue-200 rounded px-2 py-1.5 mb-2">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm">🔄</span>
-                <span className="text-xs text-blue-700 font-medium truncate">
+                <span className="text-xs text-blue-700 font-medium">
                   {inProgress.content}
                 </span>
               </div>
             </div>
           )}
 
-          {/* Task list - scrollable with explicit styles */}
+          {/* Task list - scrollable */}
           <div 
-            className="space-y-1"
+            ref={scrollRef}
+            className="space-y-1 pr-1"
             style={{ 
-              maxHeight: '200px', 
-              overflowY: 'auto',
-              overscrollBehavior: 'contain'
+              maxHeight: '250px', 
+              overflowY: 'scroll',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#d1d5db transparent'
             }}
           >
             {todos.map((todo) => {
@@ -85,13 +96,13 @@ export function TodoPanel({ todos }: TodoPanelProps) {
               return (
                 <div
                   key={todo.id}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs ${
+                  className={`flex items-start gap-2 px-2 py-1.5 rounded text-xs ${
                     todo.status === 'in_progress' ? 'bg-blue-50' : 'hover:bg-ink-50'
                   }`}
                 >
-                  <span className="flex-shrink-0">{config.emoji}</span>
+                  <span className="flex-shrink-0 mt-0.5">{config.emoji}</span>
                   <span 
-                    className={`${
+                    className={`break-words ${
                       todo.status === 'completed' ? 'line-through text-ink-400' : 
                       todo.status === 'cancelled' ? 'line-through text-ink-400' :
                       'text-ink-700'
@@ -104,7 +115,7 @@ export function TodoPanel({ todos }: TodoPanelProps) {
             })}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
