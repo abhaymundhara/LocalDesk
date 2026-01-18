@@ -417,9 +417,9 @@ function App() {
           </div>
         </div>
 
-        {/* Todo Panel */}
+        {/* Todo Panel - fixed above input */}
         {activeSession?.todos && activeSession.todos.length > 0 && (
-          <div className="px-4 pb-2">
+          <div className="flex-shrink-0 px-4 pb-2 mx-auto w-full max-w-4xl">
             <TodoPanel todos={activeSession.todos} />
           </div>
         )}

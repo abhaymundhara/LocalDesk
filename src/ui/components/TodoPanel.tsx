@@ -9,11 +9,11 @@ interface TodoPanelProps {
   todos: TodoItem[];
 }
 
-const statusConfig: Record<TodoStatus, { emoji: string; color: string; bgColor: string }> = {
-  pending: { emoji: '⬜', color: 'text-ink-500', bgColor: 'bg-ink-100' },
-  in_progress: { emoji: '🔄', color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  completed: { emoji: '✅', color: 'text-green-600', bgColor: 'bg-green-100' },
-  cancelled: { emoji: '❌', color: 'text-red-500', bgColor: 'bg-red-100' }
+const statusConfig: Record<TodoStatus, { emoji: string }> = {
+  pending: { emoji: '⬜' },
+  in_progress: { emoji: '🔄' },
+  completed: { emoji: '✅' },
+  cancelled: { emoji: '❌' }
 };
 
 export function TodoPanel({ todos }: TodoPanelProps) {
@@ -27,10 +27,10 @@ export function TodoPanel({ todos }: TodoPanelProps) {
   const inProgress = todos.find(t => t.status === 'in_progress');
 
   return (
-    <div className="bg-surface-50 border border-border-200 rounded-lg p-3 mb-3 shadow-sm overflow-hidden">
+    <div className="bg-white border border-ink-200 rounded-lg shadow-sm">
       {/* Header with progress - clickable to collapse */}
       <div 
-        className="flex items-center justify-between cursor-pointer select-none"
+        className="flex items-center justify-between p-3 cursor-pointer select-none hover:bg-ink-50 rounded-t-lg transition-colors"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
@@ -49,7 +49,7 @@ export function TodoPanel({ todos }: TodoPanelProps) {
       </div>
 
       {/* Progress bar - always visible */}
-      <div className="h-1.5 bg-ink-200 rounded-full mt-2 overflow-hidden">
+      <div className="h-1.5 bg-ink-100 mx-3 mb-2 rounded-full overflow-hidden">
         <div 
           className="h-full bg-green-500 rounded-full transition-all duration-300 ease-out"
           style={{ width: `${percent}%` }}
@@ -58,7 +58,7 @@ export function TodoPanel({ todos }: TodoPanelProps) {
 
       {/* Collapsible content */}
       {!isCollapsed && (
-        <div className="mt-3">
+        <div className="px-3 pb-3">
           {/* Current task highlight */}
           {inProgress && (
             <div className="bg-blue-50 border border-blue-200 rounded px-2 py-1.5 mb-2">
@@ -71,20 +71,27 @@ export function TodoPanel({ todos }: TodoPanelProps) {
             </div>
           )}
 
-          {/* Task list - scrollable */}
-          <div className="space-y-1 max-h-48 overflow-y-auto overscroll-contain">
+          {/* Task list - scrollable with explicit styles */}
+          <div 
+            className="space-y-1"
+            style={{ 
+              maxHeight: '200px', 
+              overflowY: 'auto',
+              overscrollBehavior: 'contain'
+            }}
+          >
             {todos.map((todo) => {
               const config = statusConfig[todo.status];
               return (
                 <div
                   key={todo.id}
-                  className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${
-                    todo.status === 'in_progress' ? 'bg-blue-50' : ''
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs ${
+                    todo.status === 'in_progress' ? 'bg-blue-50' : 'hover:bg-ink-50'
                   }`}
                 >
                   <span className="flex-shrink-0">{config.emoji}</span>
                   <span 
-                    className={`truncate ${
+                    className={`${
                       todo.status === 'completed' ? 'line-through text-ink-400' : 
                       todo.status === 'cancelled' ? 'line-through text-ink-400' :
                       'text-ink-700'
