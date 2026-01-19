@@ -23,7 +23,7 @@ const SUPPORTED_EXTENSIONS = new Set([
 export const AttachImageToolDefinition: ToolDefinition = {
   type: "function",
   function: {
-    name: "AttachImage",
+    name: "attach_image",
     description: "Load a local image file (within the working directory), convert it to WebP, and attach it for the next model call.",
     parameters: {
       type: "object",

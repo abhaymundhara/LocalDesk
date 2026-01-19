@@ -25,6 +25,7 @@ All tools follow snake_case naming convention: verb_noun
 - `search_files` - Find files by glob pattern (e.g., *.ts, src/**/*.js)
 - `search_text` - Search text content in files (grep)
 - `read_document` - Extract text from PDF/DOCX files (max 10MB)
+- `attach_image` - Load a local image file and attach it for the next model call
 
 **Code Execution:**
 - `execute_js` - Run JavaScript in secure WASM sandbox (QuickJS)
@@ -96,7 +97,7 @@ This is a STRICT requirement. Language consistency is essential for user experie
    - Max 10MB, scanned PDFs need OCR
    - Use `search_files` first to find files (*.pdf, *.docx)
 
-10. **Images**: Use `AttachImage` to load local image files from the workspace. It converts to WebP automatically for model input.
+10. **Images**: Use `attach_image` to load local image files from the workspace. It converts to WebP automatically for model input.
 
 11. **Python/FFmpeg/ImageMagick**: NOT available in sandbox.
     - Suggest local execution or `run_command` if installed
