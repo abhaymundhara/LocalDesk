@@ -12,7 +12,9 @@ import { TOOLS, getTools, getSystemPrompt } from "./tools-definitions.js";
 import { getInitialPrompt } from "./prompt-loader.js";
 import { getTodosSummary, getTodos, setTodos, clearTodos } from "./tools/manage-todos-tool.js";
 import { ToolExecutor } from "./tools-executor.js";
+import type { FileChange } from "../types.js";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
+import { isGitRepo, getRelativePath, getFileDiffStats } from "../git-utils.js";
 import { join } from "path";
 import { homedir } from "os";
 
@@ -65,6 +67,10 @@ const logApiRequest = (sessionId: string, data: any) => {
 export async function runClaude(options: RunnerOptions): Promise<RunnerHandle> {
   const { prompt, session, onEvent, onSessionUpdate } = options;
   let aborted = false;
+
+  // Token tracking (declare outside try block for catch access)
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
 
   // Permission tracking
   const pendingPermissions = new Map<string, { resolve: (approved: boolean) => void }>();
@@ -317,8 +323,6 @@ export async function runClaude(options: RunnerOptions): Promise<RunnerHandle> {
       }
 
       // Track total usage across all iterations
-      let totalInputTokens = 0;
-      let totalOutputTokens = 0;
       const sessionStartTime = Date.now();
 
       // Log request
@@ -337,7 +341,7 @@ export async function runClaude(options: RunnerOptions): Promise<RunnerHandle> {
         cwd: session.cwd || 'No workspace folder',
         session_id: session.id,
         tools: activeTools.map(t => t.function.name),
-        model: modelToUse,
+        model: session.model || guiSettings.model,
         permissionMode: guiSettings.permissionMode || 'ask',
         memoryEnabled: guiSettings.enableMemory || false
       });
@@ -367,7 +371,7 @@ export async function runClaude(options: RunnerOptions): Promise<RunnerHandle> {
 
         // Prepare request payload for logging
         const requestPayload = {
-          model: modelToUse,
+          model: session.model || guiSettings.model,
           messages: messages,
           tools: activeTools,
           temperature: guiSettings.temperature || 0.3,
@@ -383,7 +387,7 @@ export async function runClaude(options: RunnerOptions): Promise<RunnerHandle> {
 
         // Call OpenAI API (with explicit typing)
         const stream = await client.chat.completions.create({
-          model: guiSettings.model,
+          model: session.model || guiSettings.model,
           messages: messages as any[],
           tools: activeTools as any[],
           temperature: guiSettings.temperature || 0.3,
@@ -492,9 +496,16 @@ export async function runClaude(options: RunnerOptions): Promise<RunnerHandle> {
         // Check if aborted during stream
         if (aborted) {
           console.log('[OpenAI Runner] Session aborted during streaming');
+          if (onSessionUpdate) {
+            onSessionUpdate({ inputTokens: totalInputTokens, outputTokens: totalOutputTokens });
+          }
           onEvent({
             type: "session.status",
-            payload: { sessionId: session.id, status: "idle", title: session.title }
+            payload: {
+              sessionId: session.id,
+              status: "idle",
+              title: session.title
+            }
           });
           return;
         }
@@ -615,12 +626,19 @@ export async function runClaude(options: RunnerOptions): Promise<RunnerHandle> {
                   output_tokens: totalOutputTokens
                 }
               });
-              
+
+              if (onSessionUpdate) {
+                onSessionUpdate({ inputTokens: totalInputTokens, outputTokens: totalOutputTokens });
+              }
               onEvent({
                 type: "session.status",
-                payload: { sessionId: session.id, status: "idle", title: session.title }
+                payload: {
+                  sessionId: session.id,
+                  status: "idle",
+                  title: session.title
+                }
               });
-              
+
               return; // Exit the runner
             }
             
@@ -763,6 +781,44 @@ export async function runClaude(options: RunnerOptions): Promise<RunnerHandle> {
             memoryContent = await loadMemory();
           }
 
+          // Track file changes for write_file and edit_file
+          if ((toolName === 'write_file' || toolName === 'edit_file') && result.success) {
+            const filePath = toolArgs.file_path || toolArgs.path;
+            if (filePath && session.cwd && sessionStore) {
+              try {
+                // Only track changes if this is a git repository
+                if (!isGitRepo(session.cwd)) {
+                  console.log(`[OpenAI Runner] Skipping file change tracking - not a git repository: ${session.cwd}`);
+                } else {
+                  // Get relative path from project root
+                  const relativePath = getRelativePath(filePath, session.cwd);
+                  // Get git diff stats for the file
+                  const diffStats = getFileDiffStats(filePath, session.cwd);
+
+                  if (diffStats.additions > 0 || diffStats.deletions > 0) {
+                    // Create FileChange entry
+                    const fileChange: FileChange = {
+                      path: relativePath,
+                      additions: diffStats.additions,
+                      deletions: diffStats.deletions,
+                      status: 'pending'
+                    };
+                    // Add to session store
+                    sessionStore.addFileChanges(session.id, [fileChange]);
+                    console.log(`[OpenAI Runner] File change tracked: ${fileChange.path} (+${fileChange.additions} -${fileChange.deletions})`);
+                    // Emit event for UI update
+                    onEvent({
+                      type: 'file_changes.updated',
+                      payload: { sessionId: session.id, fileChanges: sessionStore.getFileChanges(session.id) }
+                    });
+                  }
+                }
+              } catch (error) {
+                console.error('[OpenAI Runner] Failed to track file changes:', error);
+              }
+            }
+          }
+
           // Add tool result to messages
           toolResults.push({
             role: 'tool',
@@ -797,9 +853,16 @@ export async function runClaude(options: RunnerOptions): Promise<RunnerHandle> {
         // Check if aborted during tool execution
         if (aborted) {
           console.log('[OpenAI Runner] Session aborted during tool execution');
+          if (onSessionUpdate) {
+            onSessionUpdate({ inputTokens: totalInputTokens, outputTokens: totalOutputTokens });
+          }
           onEvent({
             type: "session.status",
-            payload: { sessionId: session.id, status: "idle", title: session.title }
+            payload: {
+              sessionId: session.id,
+              status: "idle",
+              title: session.title
+            }
           });
           return;
         }
@@ -886,14 +949,17 @@ DO NOT call the same tool again with similar arguments.`
       // Send error message to chat
       sendMessage('text', { text: `\n\n❌ **Error:** ${errorMessage}\n\nPlease check your API settings (Base URL, Model Name, API Key) and try again.` });
       saveToDb('text', { text: `\n\n❌ **Error:** ${errorMessage}\n\nPlease check your API settings (Base URL, Model Name, API Key) and try again.` });
-      
+
+      if (onSessionUpdate) {
+        onSessionUpdate({ inputTokens: totalInputTokens, outputTokens: totalOutputTokens });
+      }
       onEvent({
         type: "session.status",
-        payload: { 
-          sessionId: session.id, 
-          status: "idle", 
-          title: session.title, 
-          error: errorMessage 
+        payload: {
+          sessionId: session.id,
+          status: "idle",
+          title: session.title,
+          error: errorMessage
         }
       });
     }

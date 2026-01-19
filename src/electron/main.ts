@@ -280,4 +280,16 @@ app.on("ready", () => {
             }
         }
     });
+
+    // Handle opening external URLs in default browser
+    ipcMainHandle("open-external-url", async (_, url: string) => {
+        try {
+            console.log('[Main] Opening external URL:', url);
+            await shell.openExternal(url);
+            return { success: true };
+        } catch (error: any) {
+            console.error('[Main] Error opening URL:', error);
+            return { success: false, error: error.message };
+        }
+    });
 })
