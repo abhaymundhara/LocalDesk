@@ -24,21 +24,23 @@ export const SearchToolDefinition: ToolDefinition = {
   type: "function",
   function: {
     name: "search",
-    description: `Search DuckDuckGo to FIND URLs when you don't have one yet.
+    description: `Search DuckDuckGo to FIND URLs. ONLY use when you DON'T have a URL yet.
 
-**IMPORTANT: This finds URLs, doesn't read them**
-- Have a URL already? → Use 'fetch_html' instead (much faster!)
-- Returns only search results (titles + URLs + snippets)
-- To read full content → Use fetch_html with returned URLs
+**CRITICAL: Do you see a URL (http://, https://, github.com, etc.)? → STOP! Use 'fetch_html' instead**
 
-**Use for:**
-- Discovering URLs about a topic
-- Research queries ("best practices for X")
-- Finding relevant websites
+**This tool is ONLY for:**
+- ✗ NO URL yet → Search to FIND URLs
+- ✗ Questions like "what is X?" → Search first
+- ✗ Research topics → Search to discover URLs
 
-**Don't use for:**
-- Reading known URLs (use fetch_html)
-- Getting full page content
+**Do NOT use for:**
+- ✓ User gives a URL → Use 'fetch_html' (NOT search)
+- ✓ github.com/... → Use 'fetch_html'
+- ✓ Any full URL → Use 'fetch_html'
+
+**What this returns:**
+- Only search results (titles + URLs + snippets)
+- To read full content → Use 'fetch_html' with returned URLs
 
 **Parameters:**
 - query: Search query (required)
