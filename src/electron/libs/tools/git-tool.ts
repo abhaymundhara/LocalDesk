@@ -592,23 +592,23 @@ export async function executeGitStatusTool(
       return { success: false, error: `Git error: ${parsed.error}` };
     }
 
-    // Format for human-readable output
-    let output = `## 📦 Git Status: ${parsed.branch}\n\n`;
+    // Format for output
+    let output = `Branch: ${parsed.branch}\n`;
 
     if (parsed.clean) {
-      output += "✅ Working tree is clean\n";
+      output += "Working tree clean";
     } else {
       if (parsed.staged.length > 0) {
-        output += `**Staged (${parsed.staged.length}):**\n`;
-        parsed.staged.forEach((f: string) => (output += `  + ${f}\n`));
+        output += `\nStaged (${parsed.staged.length}):\n`;
+        parsed.staged.forEach((f: string) => (output += `  ${f}\n`));
       }
       if (parsed.unstaged.length > 0) {
-        output += `\n**Modified (${parsed.unstaged.length}):**\n`;
-        parsed.unstaged.forEach((f: string) => (output += `  ~ ${f}\n`));
+        output += `\nModified (${parsed.unstaged.length}):\n`;
+        parsed.unstaged.forEach((f: string) => (output += `  ${f}\n`));
       }
       if (parsed.untracked.length > 0) {
-        output += `\n**Untracked (${parsed.untracked.length}):**\n`;
-        parsed.untracked.forEach((f: string) => (output += `  ? ${f}\n`));
+        output += `\nUntracked (${parsed.untracked.length}):\n`;
+        parsed.untracked.forEach((f: string) => (output += `  ${f}\n`));
       }
     }
 
@@ -644,12 +644,11 @@ export async function executeGitLogTool(
       return { success: false, error: `Git error: ${parsed.error}` };
     }
 
-    let output = `## 📜 Commit History (${parsed.count} commits)\n\n`;
+    let output = `Commit History (${parsed.count}):\n`;
 
     parsed.commits.forEach((c: any) => {
       const date = new Date(c.timestamp * 1000).toLocaleDateString();
-      output += `\`${c.hash.substring(0, 7)}\` ${c.author} - ${date}\n`;
-      output += `> ${c.message}\n\n`;
+      output += `${c.hash.substring(0, 7)} ${c.author} ${date}\n${c.message}\n\n`;
     });
 
     return { success: true, output };
@@ -682,22 +681,20 @@ export async function executeGitDiffTool(
     }
 
     if (!parsed.has_changes) {
-      return { success: true, output: "✅ No changes in working directory" };
+      return { success: true, output: "No changes" };
     }
 
-    let output = "## 📝 Uncommitted Changes\n\n";
+    let output = "";
 
     if (parsed.staged) {
-      output += `**Staged:** ${parsed.staged}\n`;
+      output += `Staged:\n${parsed.staged}\n`;
     }
     if (parsed.working_tree) {
-      output += `**Working Tree:** ${parsed.working_tree}\n\n`;
+      output += `Working Tree:\n${parsed.working_tree}\n`;
     }
 
     if (parsed.diff) {
-      output += "```diff\n";
-      output += parsed.diff;
-      output += "\n```";
+      output += "\n" + parsed.diff;
     }
 
     return { success: true, output };
@@ -732,13 +729,13 @@ export async function executeGitBranchTool(
       return { success: false, error: `Git error: ${parsed.error}` };
     }
 
-    let output = `## 🌿 Current Branch: \`${parsed.current}\`\n`;
+    let output = `Current: ${parsed.current}`;
 
     if (parsed.branches) {
-      output += `\n**All Branches (${parsed.count}):**\n`;
+      output += `\n\nAll Branches (${parsed.count}):\n`;
       parsed.branches.forEach((b: string) => {
-        const prefix = b === parsed.current ? "●" : " ";
-        output += `${prefix} ${b}\n`;
+        const prefix = b === parsed.current ? "*" : "  ";
+        output += `${prefix}${b}\n`;
       });
     }
 
@@ -786,7 +783,7 @@ export async function executeGitCheckoutTool(
       }
       return {
         success: true,
-        output: `✅ Switched to branch '${args.branch}'`,
+        output: `Switched to branch '${args.branch}'`,
       };
     } else {
       // Restore file
@@ -800,7 +797,7 @@ export async function executeGitCheckoutTool(
           error: `Failed to restore file: ${result.error}`,
         };
       }
-      return { success: true, output: `✅ Restored '${args.file}' to HEAD` };
+      return { success: true, output: `Restored '${args.file}' to HEAD` };
     }
   } catch (error: any) {
     return { success: false, error: `Git checkout failed: ${error.message}` };
@@ -839,8 +836,8 @@ export async function executeGitAddTool(
       };
     }
 
-    const target = args.file ? ` '${args.file}'` : " all changes";
-    return { success: true, output: `✅ Staged${target}` };
+    const target = args.file ? args.file : "all changes";
+    return { success: true, output: `Staged ${target}` };
   } catch (error: any) {
     return { success: false, error: `Git add failed: ${error.message}` };
   }
@@ -879,7 +876,7 @@ export async function executeGitCommitTool(
       return { success: false, error: `Failed to commit: ${result.error}` };
     }
 
-    return { success: true, output: `✅ Committed: ${args.message}` };
+    return { success: true, output: `Committed: ${args.message}` };
   } catch (error: any) {
     return { success: false, error: `Git commit failed: ${error.message}` };
   }
@@ -930,7 +927,7 @@ export async function executeGitPushTool(
     const forceMsg = args.force ? " (force)" : "";
     return {
       success: true,
-      output: `✅ Pushed to ${remote}/${branch}${forceMsg}`,
+      output: `Pushed to ${remote}/${branch}${forceMsg}`,
     };
   } catch (error: any) {
     return { success: false, error: `Git push failed: ${error.message}` };
@@ -979,10 +976,10 @@ export async function executeGitPullTool(
       return { success: false, error: `Failed to pull: ${result.error}` };
     }
 
-    const rebaseMsg = args.rebase ? " with rebase" : "";
+    const rebaseMsg = args.rebase ? " (rebase)" : "";
     return {
       success: true,
-      output: `✅ Pulled from ${remote}/${branch}${rebaseMsg}\n${result.output}`,
+      output: `Pulled from ${remote}/${branch}${rebaseMsg}\n${result.output}`,
     };
   } catch (error: any) {
     return { success: false, error: `Git pull failed: ${error.message}` };
@@ -1025,7 +1022,7 @@ export async function executeGitResetTool(
           error: `Failed to unstage file: ${result.error}`,
         };
       }
-      return { success: true, output: `✅ Unstaged '${args.file}'` };
+      return { success: true, output: `Unstaged '${args.file}'` };
     }
 
     // Warn about hard reset
@@ -1036,7 +1033,7 @@ export async function executeGitResetTool(
       }
       return {
         success: true,
-        output: `⚠️  Hard reset to ${target}\n${result.output}`,
+        output: `Hard reset to ${target}\n${result.output}`,
       };
     }
 
@@ -1050,7 +1047,7 @@ export async function executeGitResetTool(
 
     return {
       success: true,
-      output: `✅ Reset (${mode}) to ${target}\n${result.output}`,
+      output: `Reset (${mode}) to ${target}\n${result.output}`,
     };
   } catch (error: any) {
     return { success: false, error: `Git reset failed: ${error.message}` };
@@ -1098,7 +1095,7 @@ export async function executeGitShowTool(
 
     return {
       success: true,
-      output: `## 🔍 Commit Details: ${commit}\n\n\`\`\`\n${output}${truncated}\n\`\`\``,
+      output: `Commit: ${commit}\n\n${output}${truncated}`,
     };
   } catch (error: any) {
     return { success: false, error: `Git show failed: ${error.message}` };
