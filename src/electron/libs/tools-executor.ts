@@ -264,11 +264,14 @@ export class ToolExecutor {
 
         case "read_document":
           return await executeReadDocumentTool(args as any, context);
-
-        case "render_page":
+        
+        case 'render_page':
           return await executeRenderPageTool(args as any, context);
-
-        case "manage_todos":
+        
+        case 'schedule_task':
+          return await this.executeScheduleTask(args, context);
+        
+        case 'manage_todos':
           return await executeManageTodosTool(args as any, context);
 
         case "git_status":
