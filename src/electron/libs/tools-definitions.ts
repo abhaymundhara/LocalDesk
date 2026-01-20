@@ -5,6 +5,18 @@
 import { ALL_TOOL_DEFINITIONS } from './tools/index.js';
 import type { ApiSettings } from '../types.js';
 
+// Git tool names
+const GIT_TOOLS = ['git_status', 'git_log', 'git_diff', 'git_branch', 'git_checkout', 'git_add', 'git_commit', 'git_push', 'git_pull', 'git_reset', 'git_show'];
+
+// Browser tool names
+const BROWSER_TOOLS = ['browser_navigate', 'browser_click', 'browser_type', 'browser_select', 'browser_hover', 'browser_scroll', 'browser_press_key', 'browser_wait_for', 'browser_snapshot', 'browser_screenshot', 'browser_execute_script'];
+
+// DuckDuckGo search tool names (no API key needed)
+const DUCKDUCKGO_TOOLS = ['search', 'search_news', 'search_images'];
+
+// Fetch/HTTP tool names
+const FETCH_TOOLS = ['fetch', 'fetch_json', 'download'];
+
 // Get tools based on settings
 export function getTools(settings: ApiSettings | null) {
   let tools = [...ALL_TOOL_DEFINITIONS];
@@ -15,14 +27,31 @@ export function getTools(settings: ApiSettings | null) {
   }
   
   // Filter out ZaiReader if not enabled
-  const zaiReaderEnabled = settings?.enableZaiReader === true;
-  console.log(`[getTools] enableZaiReader: ${zaiReaderEnabled}`);
-
-  if (!zaiReaderEnabled) {
+  if (!settings?.enableZaiReader) {
     tools = tools.filter(tool => tool.function.name !== 'read_page');
   }
   
-  console.log(`[getTools] Active tools: ${tools.map(t => t.function.name).join(', ')}`);
+  // Filter out Git tools if not enabled
+  if (!settings?.enableGitTools) {
+    tools = tools.filter(tool => !GIT_TOOLS.includes(tool.function.name));
+  }
+  
+  // Filter out Browser tools if not enabled
+  if (!settings?.enableBrowserTools) {
+    tools = tools.filter(tool => !BROWSER_TOOLS.includes(tool.function.name));
+  }
+  
+  // Filter out DuckDuckGo tools if not enabled
+  if (!settings?.enableDuckDuckGo) {
+    tools = tools.filter(tool => !DUCKDUCKGO_TOOLS.includes(tool.function.name));
+  }
+  
+  // Filter out Fetch tools if not enabled
+  if (!settings?.enableFetchTools) {
+    tools = tools.filter(tool => !FETCH_TOOLS.includes(tool.function.name));
+  }
+  
+  console.log(`[getTools] Active tools (${tools.length}): ${tools.map(t => t.function.name).join(', ')}`);
   return tools;
 }
 

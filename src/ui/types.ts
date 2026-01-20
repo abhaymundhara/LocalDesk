@@ -119,6 +119,11 @@ export type ApiSettings = {
   enableMemory?: boolean; // Enable long-term memory tool
   enableZaiReader?: boolean; // Enable Z.AI Web Reader tool
   zaiReaderApiUrl?: ZaiReaderApiUrl; // Z.AI Reader API URL variant: 'default' or 'coding'
+  // New tool group toggles
+  enableGitTools?: boolean; // Enable git_* tools (11 tools)
+  enableBrowserTools?: boolean; // Enable browser_* tools (11 tools)
+  enableDuckDuckGo?: boolean; // Enable search/search_news/search_images (no API key needed)
+  enableFetchTools?: boolean; // Enable fetch/fetch_json/download tools
 };
 
 export type ModelInfo = {

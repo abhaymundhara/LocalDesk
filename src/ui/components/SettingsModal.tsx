@@ -22,6 +22,11 @@ export function SettingsModal({ onClose, onSave, currentSettings }: SettingsModa
   const [enableZaiReader, setEnableZaiReader] = useState(currentSettings?.enableZaiReader || false);
   const [zaiReaderApiUrl, setZaiReaderApiUrl] = useState<ZaiReaderApiUrl>(currentSettings?.zaiReaderApiUrl || 'default');
   const [memoryContent, setMemoryContent] = useState("");
+  // New tool group toggles
+  const [enableGitTools, setEnableGitTools] = useState(currentSettings?.enableGitTools || false);
+  const [enableBrowserTools, setEnableBrowserTools] = useState(currentSettings?.enableBrowserTools || false);
+  const [enableDuckDuckGo, setEnableDuckDuckGo] = useState(currentSettings?.enableDuckDuckGo || false);
+  const [enableFetchTools, setEnableFetchTools] = useState(currentSettings?.enableFetchTools || false);
   const [memoryLoading, setMemoryLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showTavilyPassword, setShowTavilyPassword] = useState(false);
@@ -47,6 +52,11 @@ export function SettingsModal({ onClose, onSave, currentSettings }: SettingsModa
       setEnableMemory(currentSettings.enableMemory || false);
       setEnableZaiReader(currentSettings.enableZaiReader || false);
       setZaiReaderApiUrl(currentSettings.zaiReaderApiUrl || 'default');
+      // New tool group toggles
+      setEnableGitTools(currentSettings.enableGitTools || false);
+      setEnableBrowserTools(currentSettings.enableBrowserTools || false);
+      setEnableDuckDuckGo(currentSettings.enableDuckDuckGo || false);
+      setEnableFetchTools(currentSettings.enableFetchTools || false);
       
       // Reset model selection state
       setUseCustomModel(false);
@@ -163,7 +173,11 @@ export function SettingsModal({ onClose, onSave, currentSettings }: SettingsModa
       permissionMode,
       enableMemory,
       enableZaiReader,
-      zaiReaderApiUrl
+      zaiReaderApiUrl,
+      enableGitTools,
+      enableBrowserTools,
+      enableDuckDuckGo,
+      enableFetchTools
     });
     onClose();
   };
@@ -552,6 +566,90 @@ export function SettingsModal({ onClose, onSave, currentSettings }: SettingsModa
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Tool Groups */}
+            <div className="border-t border-ink-900/10 pt-4">
+              <label className="block text-sm font-medium text-ink-700 mb-3">
+                Tool Groups
+                <span className="ml-2 text-xs font-normal text-ink-500">Enable/disable tool categories</span>
+              </label>
+              
+              {/* Git Tools */}
+              <label className="flex items-center justify-between cursor-pointer mb-3">
+                <div className="flex-1">
+                  <span className="block text-sm font-medium text-ink-700">Git Tools</span>
+                  <p className="mt-0.5 text-xs text-ink-500">
+                    11 tools: status, log, diff, branch, checkout, add, commit, push, pull, reset, show
+                  </p>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={enableGitTools}
+                    onChange={(e) => setEnableGitTools(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-ink-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-ink-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                </div>
+              </label>
+
+              {/* Browser Tools */}
+              <label className="flex items-center justify-between cursor-pointer mb-3">
+                <div className="flex-1">
+                  <span className="block text-sm font-medium text-ink-700">Browser Automation</span>
+                  <p className="mt-0.5 text-xs text-ink-500">
+                    11 tools: navigate, click, type, select, hover, scroll, press_key, wait_for, snapshot, screenshot, execute_script
+                  </p>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={enableBrowserTools}
+                    onChange={(e) => setEnableBrowserTools(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-ink-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-ink-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                </div>
+              </label>
+
+              {/* DuckDuckGo Search */}
+              <label className="flex items-center justify-between cursor-pointer mb-3">
+                <div className="flex-1">
+                  <span className="block text-sm font-medium text-ink-700">DuckDuckGo Search</span>
+                  <p className="mt-0.5 text-xs text-ink-500">
+                    3 tools: search, search_news, search_images — no API key needed
+                  </p>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={enableDuckDuckGo}
+                    onChange={(e) => setEnableDuckDuckGo(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-ink-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-ink-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                </div>
+              </label>
+
+              {/* Fetch Tools */}
+              <label className="flex items-center justify-between cursor-pointer">
+                <div className="flex-1">
+                  <span className="block text-sm font-medium text-ink-700">HTTP/Fetch Tools</span>
+                  <p className="mt-0.5 text-xs text-ink-500">
+                    3 tools: fetch, fetch_json, download — HTTP requests and file downloads
+                  </p>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={enableFetchTools}
+                    onChange={(e) => setEnableFetchTools(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-ink-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-ink-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                </div>
+              </label>
             </div>
 
           </div>
