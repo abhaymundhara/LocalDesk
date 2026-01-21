@@ -46,6 +46,7 @@ function App() {
   const setGlobalError = useAppStore((s) => s.setGlobalError);
   const historyRequested = useAppStore((s) => s.historyRequested);
   const markHistoryRequested = useAppStore((s) => s.markHistoryRequested);
+  const setHistoryLoading = useAppStore((s) => s.setHistoryLoading);
   const resolvePermissionRequest = useAppStore((s) => s.resolvePermissionRequest);
   const handleServerEvent = useAppStore((s) => s.handleServerEvent);
   const prompt = useAppStore((s) => s.prompt);
@@ -55,6 +56,7 @@ function App() {
   const pendingStart = useAppStore((s) => s.pendingStart);
   const autoScrollEnabled = useAppStore((s) => s.autoScrollEnabled);
   const setAutoScrollEnabled = useAppStore((s) => s.setAutoScrollEnabled);
+  const pendingPrependRef = useRef<null | { sessionId: string; prevScrollHeight: number; prevScrollTop: number }>(null);
 
   // Helper function to extract partial message content
   const getPartialMessageContent = (eventMessage: any) => {
@@ -177,9 +179,10 @@ function App() {
     const session = sessions[activeSessionId];
     if (session && !session.hydrated && !historyRequested.has(activeSessionId)) {
       markHistoryRequested(activeSessionId);
-      sendEvent({ type: "session.history", payload: { sessionId: activeSessionId } });
+      setHistoryLoading(activeSessionId, true);
+      sendEvent({ type: "session.history", payload: { sessionId: activeSessionId, limit: 20 } });
     }
-  }, [activeSessionId, connected, sessions, historyRequested, markHistoryRequested, sendEvent]);
+  }, [activeSessionId, connected, sessions, historyRequested, markHistoryRequested, sendEvent, setHistoryLoading]);
 
   // Track user scroll position to disable auto-scroll when user scrolls up
   useEffect(() => {
@@ -194,11 +197,28 @@ function App() {
       // User is considered "scrolled up" if they're more than 100px from the bottom
       const distanceFromBottom = scrollHeight - scrollPosition - clientHeight;
       isUserScrolledUpRef.current = distanceFromBottom > 100;
+
+      // Infinite scroll: load older messages when near the top
+      const nearTop = scrollPosition <= 120;
+      const session = activeSessionId ? sessions[activeSessionId] : undefined;
+      if (nearTop && session?.historyHasMore && !session.historyLoading && session.historyCursor) {
+        if (!messagesContainerRef.current) return;
+        pendingPrependRef.current = {
+          sessionId: activeSessionId!,
+          prevScrollHeight: messagesContainerRef.current.scrollHeight,
+          prevScrollTop: messagesContainerRef.current.scrollTop
+        };
+        setHistoryLoading(activeSessionId!, true);
+        sendEvent({
+          type: "session.history",
+          payload: { sessionId: activeSessionId!, limit: 10, before: session.historyCursor }
+        });
+      }
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [activeSessionId, sessions, sendEvent, setHistoryLoading]);
 
   // Auto-scroll when a complete message is added
   const prevMessagesLengthRef = useRef(0);
@@ -231,17 +251,29 @@ function App() {
     }
   }, [showPartialMessage, partialMessage, autoScrollEnabled]);
 
-  // Force scroll to bottom when history is first loaded
+  // Scroll handling for paginated history loads
   useEffect(() => {
-    if (activeSession?.hydrated && autoScrollEnabled && messages.length > 0) {
-      const container = messagesContainerRef.current;
-      if (container) {
+    const container = messagesContainerRef.current;
+    if (!container || !activeSessionId) return;
+
+    if (activeSession?.historyLoadType === "prepend") {
+      const pending = pendingPrependRef.current;
+      if (pending && pending.sessionId === activeSessionId) {
         requestAnimationFrame(() => {
-          container.scrollTop = container.scrollHeight;
+          const newScrollHeight = container.scrollHeight;
+          container.scrollTop = pending.prevScrollTop + (newScrollHeight - pending.prevScrollHeight);
+          pendingPrependRef.current = null;
         });
       }
+      return;
     }
-  }, [activeSession?.hydrated, messages.length, autoScrollEnabled]);
+
+    if (activeSession?.historyLoadType === "initial" && autoScrollEnabled && messages.length > 0) {
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+  }, [activeSession?.historyLoadId, activeSession?.historyLoadType, activeSessionId, autoScrollEnabled, messages.length]);
 
   const handleNewSession = useCallback(() => {
     useAppStore.getState().setActiveSessionId(null);

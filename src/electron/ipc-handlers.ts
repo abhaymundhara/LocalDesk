@@ -3,6 +3,7 @@ import type { ClientEvent, ServerEvent, MultiThreadTask } from "./types.js";
 // import { runClaude, type RunnerHandle } from "./libs/runner.js"; // Old Claude SDK runner
 import { runClaude, type RunnerHandle } from "./libs/runner-openai.js"; // New OpenAI SDK runner
 import { SessionStore } from "./libs/session-store.js";
+import type { SessionHistoryPage } from "./libs/session-store.js";
 import { SchedulerStore } from "./libs/scheduler-store.js";
 import { SchedulerService } from "./libs/scheduler-service.js";
 import { loadApiSettings, saveApiSettings } from "./libs/settings-store.js";
@@ -244,7 +245,11 @@ export async function handleClientEvent(event: ClientEvent, windowId: number) {
 
   if (event.type === "session.history") {
     const sessionId = event.payload.sessionId;
-    const history = sessions.getSessionHistory(sessionId);
+    const limit = event.payload.limit;
+    const before = event.payload.before;
+    const history = typeof limit === "number"
+      ? sessions.getSessionHistoryPage(sessionId, limit, before)
+      : sessions.getSessionHistory(sessionId);
     if (!history) {
       sessionManager.emitToWindow(windowId, {
         type: "runner.error",
@@ -257,6 +262,9 @@ export async function handleClientEvent(event: ClientEvent, windowId: number) {
     sessionManager.setWindowSession(windowId, sessionId);
 
     // Send history only to this window (including todos)
+    const paged = (typeof limit === "number" && "hasMore" in history)
+      ? (history as SessionHistoryPage)
+      : null;
     sessionManager.emitToWindow(windowId, {
       type: "session.history",
       payload: {
@@ -267,7 +275,10 @@ export async function handleClientEvent(event: ClientEvent, windowId: number) {
         outputTokens: history.session.outputTokens,
         todos: history.todos || [],
         model: history.session.model,
-        fileChanges: history.fileChanges || []
+        fileChanges: history.fileChanges || [],
+        hasMore: paged?.hasMore ?? false,
+        nextCursor: paged?.nextCursor,
+        page: paged ? (before ? "prepend" : "initial") : "initial"
       }
     });
     return;
