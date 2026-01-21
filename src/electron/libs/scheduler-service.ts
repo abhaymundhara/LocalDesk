@@ -1,4 +1,4 @@
-import { Notification } from 'electron';
+import { sendNotification } from './notification-service.js';
 import type { SchedulerStore, ScheduledTask } from './scheduler-store.js';
 
 export type SchedulerCallback = (task: ScheduledTask) => Promise<void>;
@@ -83,9 +83,10 @@ export class SchedulerService {
         
         // If current time is past notify time but before execution time
         if (now >= notifyTime && now < task.nextRun) {
-          this.sendNotification(
+          await sendNotification(
             `Upcoming Task: ${task.title}`,
-            `Task will execute in ${task.notifyBefore} minutes`
+            `Task will execute in ${task.notifyBefore} minutes`,
+            { taskId: task.id, event: 'upcoming' }
           );
           this.notifiedTasks.add(task.id);
         }
@@ -101,10 +102,7 @@ export class SchedulerService {
 
     try {
       // Show single reminder notification
-      this.sendNotification(
-        'Reminder',
-        task.title
-      );
+      await sendNotification('Reminder', task.title, { taskId: task.id, event: 'execute' });
 
       // Execute the task callback if there's a prompt (silently, no extra notifications)
       if (task.prompt) {
@@ -130,10 +128,7 @@ export class SchedulerService {
       }
     } catch (error) {
       console.error(`[Scheduler] Error executing task ${task.id}:`, error);
-      this.sendNotification(
-        'Error',
-        `Failed to execute: ${task.title}`
-      );
+      await sendNotification('Error', `Failed to execute: ${task.title}`, { taskId: task.id, event: 'error' });
     }
   }
 
@@ -141,16 +136,8 @@ export class SchedulerService {
    * Send a desktop notification
    */
   private sendNotification(title: string, body: string) {
-    try {
-      const notification = new Notification({
-        title,
-        body,
-        silent: false
-      });
-      notification.show();
-    } catch (error) {
-      console.error('[Scheduler] Failed to send notification:', error);
-    }
+    // Deprecated: use central notification service
+    void sendNotification(title, body).catch(err => console.error('[Scheduler] fallback notification error', err));
   }
 
   /**

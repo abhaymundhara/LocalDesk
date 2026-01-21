@@ -1,10 +1,10 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from "electron"
-import { Notification } from "electron";
 import { ipcMainHandle, isDev, DEV_PORT } from "./util.js";
 import { getPreloadPath, getUIPath, getIconPath } from "./pathResolver.js";
 import { getStaticData, pollResources } from "./test.js";
 import { handleClientEvent, sessions, startScheduler, stopScheduler } from "./ipc-handlers.js";
 import { sessionManager } from "./session-manager.js";
+import { sendNotification, setNotificationClickHandler } from "./libs/notification-service.js";
 import { generateSessionTitle } from "./libs/util.js";
 import type { ClientEvent } from "./types.js";
 import "./libs/claude-settings.js";
@@ -107,6 +107,18 @@ app.on("ready", () => {
     });
 
     pollResources(mainWindow);
+
+    // Route notification clicks to focus the main window and forward metadata to renderer
+    setNotificationClickHandler((meta?: any) => {
+        try {
+            if (mainWindow) {
+                try { mainWindow.show(); mainWindow.focus(); } catch {}
+                if (meta) mainWindow.webContents.send('server-event', JSON.stringify({ type: 'notification.click', payload: meta }));
+            }
+        } catch (err) {
+            console.error('[Main] notification click handler error', err);
+        }
+    });
 
     ipcMainHandle("getStaticData", () => {
         return getStaticData();
@@ -325,15 +337,8 @@ app.on("ready", () => {
     });
 
     // Allow renderer to request a desktop notification (typed via EventPayloadMapping)
-    ipcMainHandle("send-notification", async (_: any, payload: { title: string; body: string }) => {
-        try {
-            const n = new Notification({ title: payload.title, body: payload.body, silent: false });
-            n.show();
-            return { success: true };
-        } catch (error: any) {
-            console.error('[Main] Failed to show notification:', error);
-            return { success: false, error: String(error) };
-        }
+    ipcMainHandle("send-notification", async (_: any, payload: { title: string; body: string; meta?: any }) => {
+        return await sendNotification(payload.title, payload.body, payload.meta);
     });
 })
 // Stop scheduler on app quit
