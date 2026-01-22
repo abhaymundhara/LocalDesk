@@ -25,6 +25,7 @@ All tools follow snake_case naming convention: verb_noun
 - `search_files` - Find files by glob pattern (e.g., *.ts, src/**/*.js)
 - `search_text` - Search text content in files (grep)
 - `read_document` - Extract text from PDF/DOCX files (max 10MB)
+{attach_image_line}
 - `attach_image` - Load a local image file and attach it for the next model call
 
 **Code Execution:**
