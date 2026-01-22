@@ -5,6 +5,7 @@
 import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { generateSkillsPromptSection } from './tools/skills-tool.js';
 
 // Get current directory in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -108,6 +109,9 @@ export function getSystemPrompt(cwd: string, settings?: PromptSettings | null): 
   const memoryLine = settings?.enableMemory || false
     ? '- `manage_memory` - Store/read long-term memory'
     : '';
+  
+  // Build skills section (dynamically generated based on enabled skills)
+  const skillsSection = generateSkillsPromptSection();
 
   // Replace placeholders
   template = template
@@ -123,7 +127,8 @@ export function getSystemPrompt(cwd: string, settings?: PromptSettings | null): 
     .replace(/{searchTextCmd}/g, cmds.searchText)
     .replace(/{sandboxPackages}/g, sandboxPackagesInfo)
     .replace(/{read_page_line}/g, readPageLine)
-    .replace(/{memory_line}/g, memoryLine);
+    .replace(/{memory_line}/g, memoryLine)
+    .replace(/{skills_section}/g, skillsSection);
 
   return template;
 }
